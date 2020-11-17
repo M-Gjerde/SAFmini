@@ -1,0 +1,19 @@
+<rfid version="1.0.0">
+    <object>
+        <name>one</name>
+        <type>carrier</type>
+        <cargo>metal</cargo>
+    </object>
+
+    <object>
+        <name>two</name>
+        <type>carrier</type>
+        <cargo>plastic</cargo>
+    </object>
+
+    <object>
+        <name>three</name>
+        <type>carrier</type>
+        <cargo>water</cargo>
+    </object>
+</rfid>
