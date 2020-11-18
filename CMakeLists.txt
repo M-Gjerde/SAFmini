@@ -3,7 +3,7 @@ project(SAFmini)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(SAFServer main.cpp)
-target_link_libraries(SAFServer /usr/local/lib/libpugixml.a)
+add_executable(server main.cpp)
+target_link_libraries(server /usr/local/lib/libpugixml.a)
 
-add_executable(SAFClient client.cpp)
+add_executable(client client.cpp)

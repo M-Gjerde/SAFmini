@@ -33,6 +33,7 @@ int main(int argc, char const *argv[])
         printf("\nConnection Failed \n");
         return -1;
     }
+
     valread = read(sock, buffer, 1024);
     printf("%s\n", buffer);
     valread = read(sock, buffer, 1024);

@@ -7,7 +7,7 @@
 
 #define PORT 3000
 
-int document(std::vector<std::string>* cmd) {
+int document(std::vector<std::string> *cmd) {
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file("../doc.xml");
     if (!result)
@@ -25,8 +25,7 @@ int document(std::vector<std::string>* cmd) {
             // Send some signal
             printf("Metal carrier detected, transferring..\n");
             cmd->push_back("metal");
-        } else if (name == "two")
-        {
+        } else if (name == "two") {
             cmd->push_back("plastic");
             printf("2nd carrier cargo: %s\n", cargo.c_str());
 
@@ -84,11 +83,11 @@ int main() {
 
     document(&commandList);
 
-    for (auto &i : commandList){
-        if (i == "metal"){
+    for (auto &i : commandList) {
+        if (i == "metal") {
             send(new_socket, i.c_str(), strlen(i.c_str()), 0);
             printf("%s message sent\n", i.c_str());
-        } else if (i == "plastic"){
+        } else if (i == "plastic") {
             send(new_socket, i.c_str(), strlen(i.c_str()), 0);
             printf("%s message sent\n", i.c_str());
         }
