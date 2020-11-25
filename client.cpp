@@ -33,11 +33,18 @@ int main(int argc, char const *argv[])
         printf("\nConnection Failed \n");
         return -1;
     }
+    char* carrierRFID = "Carrier#2";
+    send(sock, carrierRFID, strlen(carrierRFID), 0);
 
+    /*
     valread = read(sock, buffer, 1024);
     printf("%s\n", buffer);
     valread = read(sock, buffer, 1024);
     printf("%s\n", buffer);
+
+     */
+
+    close(sock);
 
     return 0;
 }

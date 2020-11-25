@@ -1,13 +1,17 @@
 #include <iostream>
 #include <netinet/in.h>
 #include <zconf.h>
-#include <cstring>
 #include <vector>
+#include <arpa/inet.h>
+
 #include "pugixml.hpp"
+#include "csv-parser/single_include/csv.hpp"
 
 #define PORT 3000
 
 int document(std::vector<std::string> *cmd) {
+
+    // XML parser
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file("../doc.xml");
     if (!result)
@@ -35,6 +39,8 @@ int document(std::vector<std::string> *cmd) {
 }
 
 int main() {
+
+    csv::CSVReader reader("../processing_times_table.csv");
 
 
     int server_fd, new_socket, valread;
@@ -72,17 +78,40 @@ int main() {
         perror("listen");
         exit(EXIT_FAILURE);
     }
+    else
+        printf("Listening..\n");
+
+    // accpet new connection
     if ((new_socket = accept(server_fd, (struct sockaddr *) &address,
                              (socklen_t *) &addrlen)) < 0) {
         perror("accept");
         exit(EXIT_FAILURE);
     }
+    else
+        printf("Client: %s connected\n", inet_ntoa(address.sin_addr));
 
+    int time = 0;
     std::vector<std::string> commandList;
 
+    // Wait for RFID
+    valread = read(new_socket, buffer, 1024);
+    std::string carrierRFID(buffer);                // RFID received from client
+    std::string station = "Station#02";             // TODO recv station from plc
 
+    for (auto &row: reader) {
+        // Note: Can also use index of column with [] operator
+        std::string column = row[""].get<std::string>();
+
+        if (carrierRFID == column){
+            time = row[station].get<unsigned int>();
+        }
+
+    }
+
+    printf("Time to wait: %u\n", time);
+
+    /*
     document(&commandList);
-
     for (auto &i : commandList) {
         if (i == "metal") {
             send(new_socket, i.c_str(), strlen(i.c_str()), 0);
@@ -92,7 +121,7 @@ int main() {
             printf("%s message sent\n", i.c_str());
         }
     }
-
+*/
 
     return 0;
 }
