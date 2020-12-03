@@ -1,13 +1,13 @@
 #include <iostream>
-#include <netinet/in.h>
-#include <zconf.h>
 #include <vector>
-#include <arpa/inet.h>
 
-#include "pugixml.hpp"
+#include <winsock2.h>
+
+#include "pugixml/pugixml.hpp"
 #include "csv-parser/single_include/csv.hpp"
 
 #define PORT 3000
+
 
 int document(std::vector<std::string> *cmd) {
 
@@ -39,6 +39,11 @@ int document(std::vector<std::string> *cmd) {
 }
 
 int main() {
+// Initiate windows lib
+    static WSADATA wsaData;
+    int wsaerr = WSAStartup(MAKEWORD(2, 0), &wsaData);
+    if (wsaerr)
+        exit(1);
 
     csv::CSVReader reader("../processing_times_table.csv");
 
@@ -77,17 +82,15 @@ int main() {
     if (listen(server_fd, 3) < 0) {
         perror("listen");
         exit(EXIT_FAILURE);
-    }
-    else
+    } else
         printf("Listening..\n");
 
     // accpet new connection
     if ((new_socket = accept(server_fd, (struct sockaddr *) &address,
-                             (socklen_t *) &addrlen)) < 0) {
+                             (socklen_t * ) & addrlen)) < 0) {
         perror("accept");
         exit(EXIT_FAILURE);
-    }
-    else
+    } else
         printf("Client: %s connected\n", inet_ntoa(address.sin_addr));
 
     int time = 0;
@@ -102,7 +105,7 @@ int main() {
         // Note: Can also use index of column with [] operator
         std::string column = row[""].get<std::string>();
 
-        if (carrierRFID == column){
+        if (carrierRFID == column) {
             time = row[station].get<unsigned int>();
         }
 
@@ -111,6 +114,8 @@ int main() {
     printf("Time to wait: %u\n", time);
 
     /*
+     *     std::vector<std::string> commandList;
+
     document(&commandList);
     for (auto &i : commandList) {
         if (i == "metal") {
@@ -122,6 +127,8 @@ int main() {
         }
     }
 */
+
+    WSACleanup();
 
     return 0;
 }

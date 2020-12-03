@@ -204,7 +204,7 @@ for (auto& row: reader) {
 You can serialize individual rows as JSON objects, where the keys are column names, or as 
 JSON arrays (which don't contain column names). The outputted JSON contains properly escaped
 strings with minimal whitespace and no quoting for numeric values. How these JSON fragments are 
-assembled into a larger JSON document is an exercise left for the user.
+assembled into a larger JSON processXML is an exercise left for the user.
 
 ```cpp
 # include <sstream>
