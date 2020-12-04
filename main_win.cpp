@@ -1,9 +1,7 @@
 #undef UNICODE
-
 #define WIN32_LEAN_AND_MEAN
 #define _WIN32_WINNT 0x501
 #define PUGIXML_HEADER_ONLY
-
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -22,15 +20,11 @@
 #define DEFAULT_PORT "3000"
 
 int processXML(const std::string &xmlString, std::string *row, std::string *column) {
-
-
     // XML parser
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_string(xmlString.c_str());
     if (!result)
         throw std::runtime_error("Failed to open processXML");
-
-    //std::cout << "Load result: " << doc.child("rfid").attribute("version").value() << ", mesh name: "<< doc.child("rfid").child("object").child("name").child_value() << std::endl;
 
     std::ofstream outfile;
     outfile.open("../operation_logs.txt", std::ios::app);
@@ -43,6 +37,7 @@ int processXML(const std::string &xmlString, std::string *row, std::string *colu
         *row = carrier;
         *column = station;
 
+        printf("carrier: %s, station %s\n", carrier.c_str(), station.c_str());
 
         // Write timestamp, carrier and station id to file to log of operation
 
@@ -57,7 +52,6 @@ int processXML(const std::string &xmlString, std::string *row, std::string *colu
 
     return 0;
 }
-
 
 int getTimeFromLocalCSVFile(const std::string& carrier, const std::string& station){
     rapidcsv::Document doc("../processing_times_table.csv", rapidcsv::LabelParams(0, 0),rapidcsv::SeparatorParams(','));
@@ -77,9 +71,6 @@ int __cdecl main(void) {
 
     std::string row, column;
     processXML(xml, &row, &column);
-
-    printf("carrier: %s, station %s\n", row.c_str(), column.c_str());
-
 
     WSADATA wsaData;
     int iResult;
@@ -135,7 +126,6 @@ int __cdecl main(void) {
     }
 
     freeaddrinfo(result);
-
     printf("Waiting for a client...\n");
     iResult = listen(ListenSocket, SOMAXCONN);
     if (iResult == SOCKET_ERROR) {
@@ -159,22 +149,24 @@ int __cdecl main(void) {
     // No longer need server socket
     closesocket(ListenSocket);
 
-
     // Receive until the peer shuts down the connection
     do {
         iResult = recv(ClientSocket, recvbuf, recvbuflen, 0);
         if (iResult > 0) {
             printf("Bytes received: %d\n", iResult);
             std::string xmlString(recvbuf);
-            std::string carrier, station;
-            processXML(xmlString, &carrier, &station);
+            std::string carrierID, station;
+            processXML(xmlString, &carrierID, &station);
+
+            std::string carrierString = "Carrier#";
+            carrierString.append(carrierID);
             // retrieve timek
-            int processing_time = getTimeFromLocalCSVFile(carrier, station);
+            int processing_time = getTimeFromLocalCSVFile(carrierString, station);
             char processTimeChar[10];
             std::sprintf(processTimeChar, "%d", processing_time);
 
             // Send Time back to PLC
-            iSendResult = send(ClientSocket, processTimeChar, sizeof(processTimeChar), 0);
+            iSendResult = send(ClientSocket, processTimeChar, 4, 0);
             if (iSendResult == SOCKET_ERROR) {
                 printf("send failed with error: %d\n", WSAGetLastError());
                 closesocket(ClientSocket);
@@ -193,9 +185,6 @@ int __cdecl main(void) {
         }
 
     } while (iResult > 0);
-
-
-
     // shutdown the connection since we're done
     iResult = shutdown(ClientSocket, SD_SEND);
     if (iResult == SOCKET_ERROR) {
@@ -204,10 +193,8 @@ int __cdecl main(void) {
         WSACleanup();
         return 1;
     }
-
     // cleanup
     closesocket(ClientSocket);
     WSACleanup();
-
     return 0;
 }
