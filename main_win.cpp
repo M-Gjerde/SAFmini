@@ -16,7 +16,8 @@
 // Need to link with Ws2_32.lib
 #pragma comment (lib, "Ws2_32.lib")
 
-#define BUFFER_LENGTH 512
+#define RECEIVE_BUFFER_LENGTH 512
+#define SEND_BUFFER_LENGTH 4
 #define PORT "3000"
 
 int processXML(const std::string &xmlString, std::string *row, std::string *column) {
@@ -68,8 +69,8 @@ int __cdecl main(void) {
     struct addrinfo hints;
 
     int iSendResult;
-    char recvbuf[BUFFER_LENGTH];
-    int recvbuflen = BUFFER_LENGTH;
+    char recvbuf[RECEIVE_BUFFER_LENGTH];
+    int recvbuflen = RECEIVE_BUFFER_LENGTH;
 
     // Initialize WinSock
     iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -151,7 +152,7 @@ int __cdecl main(void) {
             // retrieve time from the csv file.
             int processing_time = getTimeFromLocalCSVFile(carrierString, station);
             // all times are 4 characters long. therefore a char of 4 bytes.
-            char processTimeChar[4];
+            char processTimeChar[SEND_BUFFER_LENGTH];
             std::sprintf(processTimeChar, "%d", processing_time);
 
             // Send Time back to PLC
