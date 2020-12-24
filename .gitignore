@@ -2,3 +2,4 @@
 /cmake-build-debug/
 client.cpp
 main.cpp
+.idea
