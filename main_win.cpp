@@ -61,17 +61,6 @@ int getTimeFromLocalCSVFile(const std::string& carrier, const std::string& stati
 
 int __cdecl main(void) {
 
-    std::string xml = "<rfid version=\"1.0.0\">"
-                      "<station>Station#01"
-                      "<carrier>Carrier#2</carrier>"
-                      "<timestamp>#2020/12/02, 14:58:02</timestamp>"
-                      "</station>"
-                      "</rfid>";
-    std::vector<std::string> param;
-
-    std::string row, column;
-    processXML(xml, &row, &column);
-
     WSADATA wsaData;
     int iResult;
 
