@@ -1,23 +1,24 @@
 #undef UNICODE
+// Windows socket includes
 #define WIN32_LEAN_AND_MEAN
 #define _WIN32_WINNT 0x501
-#define PUGIXML_HEADER_ONLY
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+// c++ standard libraries
 #include <stdlib.h>
 #include <stdio.h>
-
-//#include "csv-parser/single_include/csv.hpp"
+// Parser includes
+#define PUGIXML_HEADER_ONLY
 #include "pugixml/pugixml.hpp"
 #include "rapidcsv.h"
 
 // Need to link with Ws2_32.lib
 #pragma comment (lib, "Ws2_32.lib")
-// #pragma comment (lib, "Mswsock.lib")
 
-#define DEFAULT_BUFLEN 512
-#define DEFAULT_PORT "3000"
+#define RECEIVE_BUFFER_LENGTH 512
+#define SEND_BUFFER_LENGTH 4
+#define PORT "3000"
 
 int processXML(const std::string &xmlString, std::string *row, std::string *column) {
     // XML parser
@@ -63,18 +64,16 @@ int __cdecl main(void) {
 
     WSADATA wsaData;
     int iResult;
-
     SOCKET ListenSocket = INVALID_SOCKET;
-    SOCKET ClientSocket = INVALID_SOCKET;
-
+    SOCKET PLCSocket = INVALID_SOCKET;
     struct addrinfo *result = NULL;
     struct addrinfo hints;
 
     int iSendResult;
-    char recvbuf[DEFAULT_BUFLEN];
-    int recvbuflen = DEFAULT_BUFLEN;
+    char recvbuf[RECEIVE_BUFFER_LENGTH];
+    int recvbuflen = RECEIVE_BUFFER_LENGTH;
 
-    // Initialize Winsock
+    // Initialize WinSock
     iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (iResult != 0) {
         printf("WSAStartup failed with error: %d\n", iResult);
@@ -88,7 +87,7 @@ int __cdecl main(void) {
     hints.ai_flags = AI_PASSIVE;
 
     // Resolve the server address and port
-    iResult = getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
+    iResult = getaddrinfo(NULL, PORT, &hints, &result);
     if (iResult != 0) {
         printf("getaddrinfo failed with error: %d\n", iResult);
         WSACleanup();
@@ -124,9 +123,9 @@ int __cdecl main(void) {
         return 1;
     }
 
-    // Accept a client socket
-    ClientSocket = accept(ListenSocket, NULL, NULL);
-    if (ClientSocket == INVALID_SOCKET) {
+    // Accept the PLC
+    PLCSocket = accept(ListenSocket, NULL, NULL);
+    if (PLCSocket == INVALID_SOCKET) {
         printf("accept failed with error: %d\n", WSAGetLastError());
         closesocket(ListenSocket);
         WSACleanup();
@@ -135,55 +134,56 @@ int __cdecl main(void) {
         printf("Client accepted\n");
     }
 
-    // No longer need server socket
+    // We got a client now. Probably just the PLC so we can close the server socket so we dont get new clients
     closesocket(ListenSocket);
 
-    // Receive until the peer shuts down the connection
+    // Keep connetion alive until PLC closes connection
     do {
-        iResult = recv(ClientSocket, recvbuf, recvbuflen, 0);
+        iResult = recv(PLCSocket, recvbuf, recvbuflen, 0);
         if (iResult > 0) {
-            printf("Bytes received: %d\n", iResult);
+            // Create std::string from char* to work with parsers
             std::string xmlString(recvbuf);
+            // Process the XML, and return carrierID and stationID
             std::string carrierID, station;
             processXML(xmlString, &carrierID, &station);
-
+            // append Carrier# to carrierID to match the first columns in time processing table
             std::string carrierString = "Carrier#";
             carrierString.append(carrierID);
-            // retrieve timek
+
+            // retrieve time from the csv file.
             int processing_time = getTimeFromLocalCSVFile(carrierString, station);
-            char processTimeChar[10];
+            // all times are 4 characters long. therefore a char of 4 bytes.
+            char processTimeChar[SEND_BUFFER_LENGTH];
             std::sprintf(processTimeChar, "%d", processing_time);
 
             // Send Time back to PLC
-            iSendResult = send(ClientSocket, processTimeChar, 4, 0);
+            iSendResult = send(PLCSocket, processTimeChar, sizeof(processTimeChar), 0);
             if (iSendResult == SOCKET_ERROR) {
                 printf("send failed with error: %d\n", WSAGetLastError());
-                closesocket(ClientSocket);
+                closesocket(PLCSocket);
                 WSACleanup();
                 return 1;
             }
-            printf("Bytes sent: %d\n", iSendResult);
-
         } else if (iResult == 0)
             printf("Connection closing...\n");
         else {
             printf("recv failed with error: %d\n", WSAGetLastError());
-            closesocket(ClientSocket);
+            closesocket(PLCSocket);
             WSACleanup();
             return 1;
         }
 
     } while (iResult > 0);
     // shutdown the connection since we're done
-    iResult = shutdown(ClientSocket, SD_SEND);
+    iResult = shutdown(PLCSocket, SD_SEND);
     if (iResult == SOCKET_ERROR) {
         printf("shutdown failed with error: %d\n", WSAGetLastError());
-        closesocket(ClientSocket);
+        closesocket(PLCSocket);
         WSACleanup();
         return 1;
     }
     // cleanup
-    closesocket(ClientSocket);
+    closesocket(PLCSocket);
     WSACleanup();
     return 0;
 }
