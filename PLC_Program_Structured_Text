@@ -1,0 +1,81 @@
+
+CASE state OF
+	0: // Initialization:
+		xQA1_RIGHT := TRUE;
+		xMB20 := FALSE;
+		RFID.ClearError(); // resets the RFID object
+		TCP_client.Connect(sIP := '172.20.66.27', uiPort := 3000); // connect to tcp server
+		state := 1;
+
+
+	1: // wait for RFID to be ready, TCP server to be ready and PLC TCP client is connected
+		IF RFID.xReady AND TCP_client.xReady AND TCP_client.xConnected THEN
+			RFID.Connect(usiNodeId := 32, usiNetworkId := 0, usiChannel := 1);
+			state := 2;
+		END_IF
+
+	2: // Wait for RFID to be connected
+		IF RFID.xReady THEN
+			state := 3;
+		END_IF
+
+	3: // Carrier has arrived, scan RFID and get current time
+	IF IO.xBG21 = TRUE THEN
+		myTime(xExecute := TRUE); 		// Get current time
+		RFID.ReadTag(uiStartAddress := 0, uiDataLength:= SIZEOF(RFID_DATA), ADR(RFID_DATA));
+		State := 4;
+	END_IF
+
+	4: // Read the RFID data
+	IF RFID.xReady THEN
+		carrierIdString := UINT_TO_STRING(dc_ecp.SwapWORD(RFID_DATA.uiCarrierID));
+		dateString := DT_TO_STRING(myTime.dtDateAndTime);
+		// Create xml string
+		tcpString := CONCAT(STR1 := '<rfid version="1.0.0"> <station>', STR2 := 'Station#09');
+		tcpString := CONCAT(STR1 := tcpString, STR2 := '<carrier>');
+		tcpString := CONCAT(STR1 := tcpString, STR2 := carrierIdString);
+		tcpString := CONCAT(STR1 := tcpString, STR2 := '</carrier> <timestamp>');
+		tcpString := CONCAT(STR1 := tcpString, STR2 := dateString);
+		tcpString := CONCAT(STR1 := tcpString, STR2 := '</timestamp> </station> </rfid>');
+		TCP_client.Send(pToSend := ADR(tcpString), uiSizeToSend := SIZEOF(tcpString));			// Transmit data
+		myTime(xExecute := FALSE);																// Reset timestamp
+		state := 5;
+	END_IF
+
+
+	5: // When transmission is done, be ready to receive
+	IF TCP_client.xReady THEN
+		TCP_client.Receive(pToReceive := ADR(processingTimeString), uiSizeToReceive := 4);
+			state := 6;
+
+	END_IF
+
+	// Wait until we receive all our data from server
+	6:
+	IF TCP_client.xReady THEN
+		// Get processing time
+		//timeInterval.PT := STRING_TO_INT(processingTimeString);
+		timer(IN := TRUE, PT := INT_TO_TIME(STRING_TO_INT(processingTimeString)));
+		state := 7;
+	END_IF
+
+	7: // wait the required time
+	IF timer.Q THEN
+		timer(IN := FALSE);
+		io.xMB20 := TRUE;
+		timer(IN := TRUE, PT:= T#0S250MS);
+		state := 8;
+	END_IF
+	// Give carrier half a second to pass
+	8:
+		IF timer.Q THEN
+		timer(IN := FALSE);
+		io.xMB20 := FALSE;
+		state := 3;
+	END_IF
+
+END_CASE
+
+timer(); // Allow timer to run in the background (Probably on a different thread?)
+RFID();  // -- || --
+TCP_client();

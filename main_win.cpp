@@ -169,6 +169,8 @@ int __cdecl main(void) {
             return 1;
         }
 
+        printf("iResult: %d\n", iResult);
+
     } while (iResult > 0);
     // shutdown the connection since we're done
     iResult = shutdown(PLCSocket, SD_SEND);

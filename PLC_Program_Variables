@@ -1,0 +1,19 @@
+PROGRAM PLC_PRG
+VAR
+	state: UINT := 0;
+	timeInterval: TON;
+	timer: TON;
+	RFID_DATA: DC_ECP.st_CPF_RfidData;
+	RFID: DC_ECP.Dtm425;
+	TCP_client: dc_ecp.TcpClientByteStream;
+	carrierID: UINT := 0;
+	myTime: DTU.GetDateAndTime;
+	carrierIdString: STRING(255);
+	dateString: STRING(255);
+	tcpString: STRING(200);
+	xmlString: STRING(255);
+	processingTimeString: STRING;
+	processingTime: UINT := 0;
+	waitTime: INT;
+
+END_VAR
