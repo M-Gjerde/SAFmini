@@ -54,13 +54,9 @@ int processXML(const std::string &xmlString, std::string *row, std::string *colu
     return 0;
 }
 
-int getTimeFromLocalCSVFile(const std::string& carrier, const std::string& station){
-    rapidcsv::Document doc("../processing_times_table.csv", rapidcsv::LabelParams(0, 0),rapidcsv::SeparatorParams(','));
-    return doc.GetCell<long long>(station, carrier);
-}
-
-
 int __cdecl main(void) {
+    // Load timetable into memory
+    rapidcsv::Document doc("../processing_times_table.csv", rapidcsv::LabelParams(0, 0),rapidcsv::SeparatorParams(','));
 
     WSADATA wsaData;
     int iResult;
@@ -144,18 +140,18 @@ int __cdecl main(void) {
             // Create std::string from char* to work with parsers
             std::string xmlString(recvbuf);
             // Process the XML, and return carrierID and stationID
-            std::string carrierID, station;
-            processXML(xmlString, &carrierID, &station);
+            std::string carrierID, stationID;
+            processXML(xmlString, &carrierID, &stationID);
             // append Carrier# to carrierID to match the first columns in time processing table
             std::string carrierString = "Carrier#";
             carrierString.append(carrierID);
 
             // retrieve time from the csv file.
-            int processing_time = getTimeFromLocalCSVFile(carrierString, station);
-            // all times are 4 characters long. therefore a char of 4 bytes.
+            int processing_time = doc.GetCell<long long>(stationID, carrierID);
+            // all processing times are 4 characters long. therefore a char of 4 bytes.
             char processTimeChar[SEND_BUFFER_LENGTH];
+            // Write bytes to processTimerChar Array/pointer
             std::sprintf(processTimeChar, "%d", processing_time);
-
             // Send Time back to PLC
             iSendResult = send(PLCSocket, processTimeChar, sizeof(processTimeChar), 0);
             if (iSendResult == SOCKET_ERROR) {
