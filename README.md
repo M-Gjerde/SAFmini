@@ -6,6 +6,6 @@ The file main_win.cpp is the server that communicates with the PLC. The log of o
 The PLC program written in CodeSys has been copy/pasted into the two files: "PLC_Program_Structured_Text" and the variables used in "PLC_Program_variables".
 <br/> <br/>
 External Libraries used are:
-rapidcsv.h imported as a single header include. This librari is used to parse CSV files. <br/>
+rapidcsv.h imported as a single header include. This library is used to parse CSV files. <br/>
 pugiXML is another library used to parse XML files.
 <br/>
